@@ -5,11 +5,28 @@ SDL_Window *Window;
 SDL_Renderer *renderer;
 
 typedef struct {
-  uint8_t V[16];
-  unsigned char memory[4096];
-  unsigned char stack[48];
+  int width;
+  int height;
+} Screen;
 
-} cpu_specs;
+typedef struct {
+  uint8_t memory[4096]; // RAM
+  uint8_t V[16];        // Registers V0-VF
+  uint16_t I;           // Index register
+  uint16_t pc;          // Program counter
+
+  uint16_t stack[16]; // Stack
+  uint8_t sp;         // Stack pointer
+
+  uint8_t delay_timer;
+  uint8_t sound_timer;
+
+  uint8_t display[64 * 32]; // Screen pixels
+  uint8_t keypad[16];       // Input
+} Chip8;
+
+void init_chip8(Chip8 *chip); // initalize all cpu vals
+void init_sdl(Screen *s);     // initalization of screen
 
 int main() {
   SDL_Init(SDL_INIT_VIDEO);
