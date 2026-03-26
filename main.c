@@ -7,6 +7,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MEMORY 4096
+#define REGISTERS 16
+#define STACK 4096
+#define DISPLAY_WIDTH 64
+#define DISPLAY_HEIGHT 32
+#define KEYCOUNT 16
+
+uint8_t fontset[80] = {
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
 SDL_Window *Window;
 SDL_Renderer *renderer;
 
@@ -37,20 +62,29 @@ void load_rom(Chip8 *c);
 bool init_sdl(void);
 void cleanup();
 void init_chip8(Chip8 *chip);
+void emulate(Chip8 *chip);
+void render_display(Chip8 *chip);
 
 int main(int argc, char **argv) {
-  (void)argc;
-  (void)argv;
   if (argc < 2) {
     printf("Usage: %s romfile\n", argv[0]);
     return 1;
   }
+
   if (!init_sdl())
     exit(EXIT_FAILURE);
 
+  // renderer for display
   renderer = SDL_CreateRenderer(Window, -1, SDL_RENDERER_ACCELERATED);
 
+  // for event handling
   SDL_Event event;
+
+  Chip8 chip;
+
+  init_chip8(&chip);
+  load_rom(&chip);
+
   int running = 1;
 
   while (running) {
@@ -59,11 +93,13 @@ int main(int argc, char **argv) {
         running = 0;
     }
 
-    SDL_SetRenderDrawColor(renderer, 30, 30, 40, 255);
-    SDL_RenderClear(renderer);
+    emulate(&chip);
+    render_display(&chip);
+
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
   }
+  cleanup();
 
   return EXIT_SUCCESS;
 }
@@ -104,4 +140,28 @@ void load_rom(Chip8 *chip) {
   fclose(f);
 }
 
-void init_chip8(Chip8 *chip) { chip->pc = 0x200; }
+void init_chip8(Chip8 *chip) {
+  chip->pc = 0x200;
+  chip->I = 0;
+  chip->sp = 0;
+
+  for (int i = 0; i < 4096; i++)
+    chip->memory[i] = 0;
+
+  for (int i = 0; i < 16; i++) {
+    chip->V[i] = 0;
+    chip->stack[i] = 0;
+    chip->keypad[i] = 0;
+  }
+
+  for (int i = 0; i < 64 * 32; i++)
+    chip->display[i] = 0;
+
+  chip->delay_timer = 0;
+  chip->sound_timer = 0;
+
+  // LOAD FONTSET
+  for (int i = 0; i < 80; i++) {
+    chip->memory[0x50 + i] = fontset[i];
+  }
+}
