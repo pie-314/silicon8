@@ -9,6 +9,7 @@ void init_chip8(Chip8 *chip); // Initalization of system, all values to 0
 void emulate(Chip8 *chip); // this will act as main process it will do all 
 void render_display(Chip8 *chip); // just checks for sprites and updates screen
 void cleanup(); // final cleanup
+void fetch(Chip8 *chip) // this function will fetch two bytes and returns a opcode
 ```
 
 
@@ -41,6 +42,5 @@ typedef struct {
   uint8_t keypad[16];       // Input
   const char *rom_file;
 } Chip8;
-
-
 ```
+

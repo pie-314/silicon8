@@ -62,8 +62,16 @@ void load_rom(Chip8 *c);
 bool init_sdl(void);
 void cleanup();
 void init_chip8(Chip8 *chip);
-void emulate(Chip8 *chip);
-void render_display(Chip8 *chip);
+// void emulate(Chip8 *chip);
+// void render_display(Chip8 *chip);
+
+uint16_t fetch(Chip8 *chip) {
+  // Combine two bytes into one 16-bit opcode
+  uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
+  chip->pc += 2; // Advance PC to the next instruction
+  printf("Opcode: %04X\n", opcode);
+  return opcode;
+}
 
 int main(int argc, char **argv) {
   if (argc < 2) {
@@ -81,6 +89,7 @@ int main(int argc, char **argv) {
   SDL_Event event;
 
   Chip8 chip;
+  chip.rom_file = argv[1];
 
   init_chip8(&chip);
   load_rom(&chip);
@@ -92,12 +101,13 @@ int main(int argc, char **argv) {
       if (event.type == SDL_QUIT)
         running = 0;
     }
+    fetch(&chip);
 
-    emulate(&chip);
-    render_display(&chip);
+    // emulate(&chip);
+    // render_display(&chip);
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(16);
+    SDL_Delay(1 / 60);
   }
   cleanup();
 
