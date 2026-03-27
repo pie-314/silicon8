@@ -63,7 +63,8 @@ void load_rom(Chip8 *c);
 bool init_sdl(void);
 void cleanup();
 void init_chip8(Chip8 *chip);
-// void emulate(Chip8 *chip);
+void emulate(Chip8 *chip, uint16_t opcode);
+
 // void render_display(Chip8 *chip);
 uint16_t fetch(Chip8 *chip);
 
@@ -182,8 +183,44 @@ uint16_t fetch(Chip8 *chip) {
     exit(1);
   }
 
+  // each opcode is combination of two 8bit instructions
   uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
   chip->pc += 2;
   printf("Opcode: %04X\n", opcode);
   return opcode;
+}
+
+void emulate(Chip8 *chip, uint16_t opcode) {
+  uint8_t x = (opcode & 0x0F00) >> 8;
+  uint8_t y = (opcode & 0x00F0) >> 4;
+  uint8_t n = (opcode & 0x000F);
+  uint8_t nn = (opcode & 0x00FF);
+  uint16_t nnn = (opcode & 0x0FFF);
+  switch (opcode & 0xF000) {
+  case 0x0000:
+    switch (opcode) {
+    case 0x00E0: // CLS: Clear the screen
+      memset(chip->display, 0, sizeof(chip->display));
+      break;
+    case 0x00EE: // RET: Return from subroutine
+      chip->pc = chip->stack[--chip->sp];
+      break;
+    }
+    break;
+  case 0x1000: // JP addr: Jump to address NNN
+    chip->pc = nnn;
+    break;
+  case 0x6000: // LD Vx, byte: Set VX to NN
+    chip->V[x] = nn;
+    break;
+  case 0x7000: // ADD Vx, byte: Add NN to VX (no carry)
+    chip->V[x] += nn;
+    break;
+  case 0xA000: // LD I, addr: Set Index register to NNN
+    chip->I = nnn;
+    break;
+  case 0xD000: // DRW Vx, Vy, nibble: Draw sprite
+    // draw_sprite(chip, x, y, n);
+    break;
+  }
 }

@@ -1,4 +1,4 @@
-`this file contains my thinking throughtout, this is not supposed to be taken as guide, it's just a peek into my thinking process`
+`this file contains my thinking throughtout, this is not supposed to be taken as guide`
 
 As of now i belive following functions are required
 
