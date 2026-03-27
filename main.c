@@ -13,6 +13,7 @@
 #define DISPLAY_WIDTH 64
 #define DISPLAY_HEIGHT 32
 #define KEYCOUNT 16
+#define FREQUENCY 60
 
 uint8_t fontset[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -35,10 +36,10 @@ uint8_t fontset[80] = {
 SDL_Window *Window;
 SDL_Renderer *renderer;
 
-typedef struct {
-  int width;
-  int height;
-} display_t;
+// typedef struct {
+//   int width;
+//   int height;
+// } display_t;
 
 typedef struct {
   uint8_t memory[4096]; // RAM
@@ -64,14 +65,7 @@ void cleanup();
 void init_chip8(Chip8 *chip);
 // void emulate(Chip8 *chip);
 // void render_display(Chip8 *chip);
-
-uint16_t fetch(Chip8 *chip) {
-  // Combine two bytes into one 16-bit opcode
-  uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
-  chip->pc += 2; // Advance PC to the next instruction
-  printf("Opcode: %04X\n", opcode);
-  return opcode;
-}
+uint16_t fetch(Chip8 *chip);
 
 int main(int argc, char **argv) {
   if (argc < 2) {
@@ -107,10 +101,9 @@ int main(int argc, char **argv) {
     // render_display(&chip);
 
     SDL_RenderPresent(renderer);
-    SDL_Delay(1 / 60);
+    SDL_Delay(1000 / FREQUENCY); // frequency set to 60Hz
   }
   cleanup();
-
   return EXIT_SUCCESS;
 }
 
@@ -125,16 +118,17 @@ bool init_sdl(void) {
     printf("could not create a window : %s", SDL_GetError());
     return false;
   }
-
   return true;
 }
 
+// do memory cleanup here only if later required
 void cleanup() {
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(Window);
   SDL_Quit();
 }
 
+// edge cases still left and probably this section is causing segfaults
 void load_rom(Chip8 *chip) {
   FILE *f = fopen(chip->rom_file, "rb");
   if (!f) {
@@ -146,10 +140,16 @@ void load_rom(Chip8 *chip) {
   long size = ftell(f);
   rewind(f);
 
+  if (size > (4096 - 0x200)) {
+    printf("ROM too large!\n");
+    exit(1);
+  }
+
   fread(&chip->memory[0x200], 1, size, f);
   fclose(f);
 }
 
+// memcpy is the better method (probably) implement later
 void init_chip8(Chip8 *chip) {
   chip->pc = 0x200;
   chip->I = 0;
@@ -174,4 +174,16 @@ void init_chip8(Chip8 *chip) {
   for (int i = 0; i < 80; i++) {
     chip->memory[0x50 + i] = fontset[i];
   }
+}
+
+uint16_t fetch(Chip8 *chip) {
+  if (chip->pc >= 4094) {
+    printf("PC out of bounds!\n");
+    exit(1);
+  }
+
+  uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
+  chip->pc += 2;
+  printf("Opcode: %04X\n", opcode);
+  return opcode;
 }
