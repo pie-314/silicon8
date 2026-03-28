@@ -199,15 +199,20 @@ void emulate(Chip8 *chip, uint16_t opcode) {
   switch (opcode & 0xF000) {
   case 0x0000:
     switch (opcode) {
-    case 0x00E0: // CLS: Clear the screen
+    case 0x00E0: // CLS: Clear the screen 0x00E0
       memset(chip->display, 0, sizeof(chip->display));
       break;
     case 0x00EE: // RET: Return from subroutine
-      chip->pc = chip->stack[--chip->sp];
+      if (chip->sp > 0)
+        chip->pc = chip->stack[--chip->sp];
       break;
     }
     break;
   case 0x1000: // JP addr: Jump to address NNN
+    chip->pc = nnn;
+    break;
+  case 0x2000: // CALL addr
+    chip->stack[chip->sp++] = chip->pc;
     chip->pc = nnn;
     break;
   case 0x6000: // LD Vx, byte: Set VX to NN
@@ -219,6 +224,147 @@ void emulate(Chip8 *chip, uint16_t opcode) {
   case 0xA000: // LD I, addr: Set Index register to NNN
     chip->I = nnn;
     break;
+  case 0xB000: // JP V0, addr
+    chip->pc = nnn + chip->V[0];
+    break;
+  case 0xC000: // RND Vx, byte
+    chip->V[x] = (rand() % 256) & nn;
+    break;
+  case 0x3000: // Skip next instruction if Vx == NN
+    if (chip->V[x] == nn) {
+      chip->pc += 2;
+    }
+    break;
+
+  case 0x4000: // Skip if Vx != NN
+    if (chip->V[x] != nn) {
+      chip->pc += 2;
+    }
+    break;
+
+  case 0x5000: // Skip if Vx == Vy
+    if (chip->V[x] == chip->V[y]) {
+      chip->pc += 2;
+    }
+    break;
+
+  case 0x9000: // Skip if Vx != Vy
+    if (chip->V[x] != chip->V[y]) {
+      chip->pc += 2;
+    }
+    break;
+  case 0x8000:
+    if (n == 0x0) { // 8XY0 → Vx = Vy
+      chip->V[x] = chip->V[y];
+    }
+
+    else if (n == 0x1) { // 8XY1 → Vx = Vx OR Vy
+      chip->V[x] |= chip->V[y];
+    }
+
+    else if (n == 0x2) { // 8XY2 → Vx = Vx AND Vy
+      chip->V[x] &= chip->V[y];
+    }
+
+    else if (n == 0x3) { // 8XY3 → Vx = Vx XOR Vy
+      chip->V[x] ^= chip->V[y];
+    }
+
+    else if (n == 0x4) { // 8XY4 → ADD with carry
+      uint16_t sum = chip->V[x] + chip->V[y];
+      chip->V[0xF] = (sum > 255);
+      chip->V[x] = sum & 0xFF;
+    }
+
+    else if (n == 0x5) { // 8XY5 → Vx = Vx - Vy
+      chip->V[0xF] = (chip->V[x] > chip->V[y]);
+      chip->V[x] -= chip->V[y];
+    }
+
+    else if (n == 0x6) { // 8XY6 → SHIFT RIGHT
+      chip->V[0xF] = chip->V[x] & 0x1;
+      chip->V[x] >>= 1;
+    }
+
+    else if (n == 0x7) { // 8XY7 → Vx = Vy - Vx
+      chip->V[0xF] = (chip->V[y] > chip->V[x]);
+      chip->V[x] = chip->V[y] - chip->V[x];
+    }
+
+    else if (n == 0xE) { // 8XYE → SHIFT LEFT
+      chip->V[0xF] = (chip->V[x] & 0x80) >> 7;
+      chip->V[x] <<= 1;
+    }
+    break;
+
+  case 0xE000:
+    if ((opcode & 0xF0FF) == 0xE09E) { // SKP Vx
+      if (chip->keypad[chip->V[x]]) {
+        chip->pc += 2;
+      }
+    }
+
+    else if ((opcode & 0xF0FF) == 0xE0A1) { // SKNP Vx
+      if (!chip->keypad[chip->V[x]]) {
+        chip->pc += 2;
+      }
+    }
+    break;
+
+  case 0xF000:
+    if ((opcode & 0xF0FF) == 0xF007) { // LD Vx, DT
+      chip->V[x] = chip->delay_timer;
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF00A) { // LD Vx, K
+      int key_pressed = 0;
+      for (int i = 0; i < 16; i++) {
+        if (chip->keypad[i]) {
+          chip->V[x] = i;
+          key_pressed = 1;
+        }
+      }
+      if (!key_pressed) {
+        chip->pc -= 2;
+      }
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF015) { // LD DT, Vx
+      chip->delay_timer = chip->V[x];
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF018) { // LD ST, Vx
+      chip->sound_timer = chip->V[x];
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF01E) { // ADD I, Vx
+      chip->I += chip->V[x];
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF029) { // LD F, Vx
+      chip->I = 0x50 + (chip->V[x] * 5);
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF033) { // LD B, Vx
+      uint8_t value = chip->V[x];
+      chip->memory[chip->I] = value / 100;
+      chip->memory[chip->I + 1] = (value / 10) % 10;
+      chip->memory[chip->I + 2] = value % 10;
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF055) { // LD [I], Vx
+      for (int i = 0; i <= x; i++) {
+        chip->memory[chip->I + i] = chip->V[i];
+      }
+    }
+
+    else if ((opcode & 0xF0FF) == 0xF065) { // LD Vx, [I]
+      for (int i = 0; i <= x; i++) {
+        chip->V[i] = chip->memory[chip->I + i];
+      }
+    }
+    break;
+
   case 0xD000: // DRW Vx, Vy, nibble: Draw sprite
     // draw_sprite(chip, x, y, n);
     break;
