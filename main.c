@@ -102,9 +102,11 @@ int main(int argc, char **argv) {
       if (event.type == SDL_QUIT)
         running = 0;
     }
-    uint16_t opcode = fetch(&chip);
+    for (int i = 0; i < 10; i++) {
+      uint16_t opcode = fetch(&chip);
+      emulate(&chip, opcode);
+    }
 
-    emulate(&chip, opcode);
     render_display(&chip);
 
     SDL_RenderPresent(renderer);
@@ -202,7 +204,6 @@ void emulate(Chip8 *chip, uint16_t opcode) {
   uint8_t n = (opcode & 0x000F);
   uint8_t nn = (opcode & 0x00FF);
   uint16_t nnn = (opcode & 0x0FFF);
-  chip->V[x] = (rand() % 256) & nn;
   switch (opcode & 0xF000) {
   case 0x0000:
     switch (opcode) {
