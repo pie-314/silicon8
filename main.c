@@ -102,6 +102,63 @@ int main(int argc, char **argv) {
       if (event.type == SDL_QUIT)
         running = 0;
     }
+    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+      int pressed = (event.type == SDL_KEYDOWN);
+
+      switch (event.key.keysym.sym) {
+      case SDLK_1:
+        chip.keypad[0x1] = pressed;
+        break;
+      case SDLK_2:
+        chip.keypad[0x2] = pressed;
+        break;
+      case SDLK_3:
+        chip.keypad[0x3] = pressed;
+        break;
+      case SDLK_4:
+        chip.keypad[0xC] = pressed;
+        break;
+
+      case SDLK_q:
+        chip.keypad[0x4] = pressed;
+        break;
+      case SDLK_w:
+        chip.keypad[0x5] = pressed;
+        break;
+      case SDLK_e:
+        chip.keypad[0x6] = pressed;
+        break;
+      case SDLK_r:
+        chip.keypad[0xD] = pressed;
+        break;
+
+      case SDLK_a:
+        chip.keypad[0x7] = pressed;
+        break;
+      case SDLK_s:
+        chip.keypad[0x8] = pressed;
+        break;
+      case SDLK_d:
+        chip.keypad[0x9] = pressed;
+        break;
+      case SDLK_f:
+        chip.keypad[0xE] = pressed;
+        break;
+
+      case SDLK_z:
+        chip.keypad[0xA] = pressed;
+        break;
+      case SDLK_x:
+        chip.keypad[0x0] = pressed;
+        break;
+      case SDLK_c:
+        chip.keypad[0xB] = pressed;
+        break;
+      case SDLK_v:
+        chip.keypad[0xF] = pressed;
+        break;
+      }
+    }
     for (int i = 0; i < 10; i++) {
       uint16_t opcode = fetch(&chip);
       emulate(&chip, opcode);
@@ -194,7 +251,7 @@ uint16_t fetch(Chip8 *chip) {
   // each opcode is combination of two 8bit instructions
   uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
   chip->pc += 2;
-  printf("Opcode: %04X\n", opcode);
+  // printf("Opcode: %04X\n", opcode);
   return opcode;
 }
 
@@ -377,6 +434,7 @@ void emulate(Chip8 *chip, uint16_t opcode) {
     draw_sprite(chip, x, y, n);
     break;
   }
+  printf("Key %X pressed\n", chip->V[x]);
 }
 
 void draw_sprite(Chip8 *chip, uint8_t x_reg, uint8_t y_reg, uint8_t n) {
