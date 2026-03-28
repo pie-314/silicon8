@@ -5,11 +5,13 @@
 #include <SDL2/SDL_rect.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
+
 #include <stdlib.h>
 
 #define MEMORY 4096
 #define REGISTERS 16
-#define STACK 4096
+#define STACK 16
 #define DISPLAY_WIDTH 64
 #define DISPLAY_HEIGHT 32
 #define KEYCOUNT 16
@@ -42,19 +44,19 @@ SDL_Renderer *renderer;
 // } display_t;
 
 typedef struct {
-  uint8_t memory[4096]; // RAM
-  uint8_t V[16];        // Registers V0-VF
-  uint16_t I;           // Index register
-  uint16_t pc;          // Program counter
+  uint8_t memory[MEMORY]; // RAM
+  uint8_t V[REGISTERS];   // Registers V0-VF
+  uint16_t I;             // Index register
+  uint16_t pc;            // Program counter
 
-  uint16_t stack[16]; // Stack
-  uint8_t sp;         // Stack pointer
+  uint16_t stack[STACK]; // Stack
+  uint8_t sp;            // Stack pointer
 
   uint8_t delay_timer;
   uint8_t sound_timer;
 
-  uint8_t display[64 * 32]; // Screen pixels
-  uint8_t keypad[16];       // Input
+  uint8_t display[DISPLAY_WIDTH * DISPLAY_HEIGHT]; // Screen pixels
+  uint8_t keypad[KEYCOUNT];                        // Input
   const char *rom_file;
 } Chip8;
 
@@ -64,11 +66,15 @@ bool init_sdl(void);
 void cleanup();
 void init_chip8(Chip8 *chip);
 void emulate(Chip8 *chip, uint16_t opcode);
+void render_display(Chip8 *chip);
 
 // void render_display(Chip8 *chip);
 uint16_t fetch(Chip8 *chip);
+void draw_sprite(Chip8 *chip, uint8_t x_reg, uint8_t y_reg, uint8_t n);
 
 int main(int argc, char **argv) {
+  srand(time(NULL));
+
   if (argc < 2) {
     printf("Usage: %s romfile\n", argv[0]);
     return 1;
@@ -96,10 +102,10 @@ int main(int argc, char **argv) {
       if (event.type == SDL_QUIT)
         running = 0;
     }
-    fetch(&chip);
+    uint16_t opcode = fetch(&chip);
 
-    // emulate(&chip);
-    // render_display(&chip);
+    emulate(&chip, opcode);
+    render_display(&chip);
 
     SDL_RenderPresent(renderer);
     SDL_Delay(1000 / FREQUENCY); // frequency set to 60Hz
@@ -114,7 +120,7 @@ bool init_sdl(void) {
     return false;
   }
   Window = SDL_CreateWindow("silicon8", SDL_WINDOWPOS_CENTERED,
-                            SDL_WINDOWPOS_CENTERED, 1000, 1000, 0);
+                            SDL_WINDOWPOS_CENTERED, 640, 320, 0);
   if (!Window) {
     printf("could not create a window : %s", SDL_GetError());
     return false;
@@ -196,6 +202,7 @@ void emulate(Chip8 *chip, uint16_t opcode) {
   uint8_t n = (opcode & 0x000F);
   uint8_t nn = (opcode & 0x00FF);
   uint16_t nnn = (opcode & 0x0FFF);
+  chip->V[x] = (rand() % 256) & nn;
   switch (opcode & 0xF000) {
   case 0x0000:
     switch (opcode) {
@@ -366,7 +373,48 @@ void emulate(Chip8 *chip, uint16_t opcode) {
     break;
 
   case 0xD000: // DRW Vx, Vy, nibble: Draw sprite
-    // draw_sprite(chip, x, y, n);
+    draw_sprite(chip, x, y, n);
     break;
+  }
+}
+
+void draw_sprite(Chip8 *chip, uint8_t x_reg, uint8_t y_reg, uint8_t n) {
+  uint8_t x_pos = chip->V[x_reg] % 64; // Wrap start position
+  uint8_t y_pos = chip->V[y_reg] % 32;
+  chip->V[0xF] = 0; // Initialize collision flag to 0
+  for (int row = 0; row < n; row++) {
+    uint8_t sprite_byte = chip->memory[chip->I + row];
+    for (int col = 0; col < 8; col++) {
+      // Check if the specific bit in the sprite_byte is set (1)
+      // Sprites are stored most significant bit first
+      if ((sprite_byte & (0x80 >> col)) != 0) {
+        // Ensure we don't draw outside the array bounds
+        if (x_pos + col < 64 && y_pos + row < 32) {
+          uint32_t screen_index = (y_pos + row) * 64 + (x_pos + col);
+          if (chip->display[screen_index] == 1) {
+            chip->V[0xF] = 1; // Collision!
+          }
+          chip->display[screen_index] ^= 1; // XOR operation
+        }
+      }
+    }
+  }
+}
+
+void render_display(Chip8 *chip) {
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+  SDL_RenderClear(renderer);
+
+  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+  int scale = 10;
+
+  for (int y = 0; y < 32; y++) {
+    for (int x = 0; x < 64; x++) {
+      if (chip->display[x + y * 64]) {
+        SDL_Rect rect = {x * scale, y * scale, scale, scale};
+        SDL_RenderFillRect(renderer, &rect);
+      }
+    }
   }
 }
