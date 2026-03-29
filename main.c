@@ -68,7 +68,6 @@ void init_chip8(Chip8 *chip);
 void emulate(Chip8 *chip, uint16_t opcode);
 void render_display(Chip8 *chip);
 
-// void render_display(Chip8 *chip);
 uint16_t fetch(Chip8 *chip);
 void draw_sprite(Chip8 *chip, uint8_t x_reg, uint8_t y_reg, uint8_t n);
 
@@ -98,81 +97,101 @@ int main(int argc, char **argv) {
   int running = 1;
 
   while (running) {
+
+    //  Handle input
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT)
         running = 0;
-    }
-    if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
-      int pressed = (event.type == SDL_KEYDOWN);
 
-      switch (event.key.keysym.sym) {
-      case SDLK_1:
-        chip.keypad[0x1] = pressed;
-        break;
-      case SDLK_2:
-        chip.keypad[0x2] = pressed;
-        break;
-      case SDLK_3:
-        chip.keypad[0x3] = pressed;
-        break;
-      case SDLK_4:
-        chip.keypad[0xC] = pressed;
-        break;
+      if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+        int pressed = (event.type == SDL_KEYDOWN);
 
-      case SDLK_q:
-        chip.keypad[0x4] = pressed;
-        break;
-      case SDLK_w:
-        chip.keypad[0x5] = pressed;
-        break;
-      case SDLK_e:
-        chip.keypad[0x6] = pressed;
-        break;
-      case SDLK_r:
-        chip.keypad[0xD] = pressed;
-        break;
+        switch (event.key.keysym.sym) {
+        case SDLK_1:
+          chip.keypad[0x1] = pressed;
+          break;
+        case SDLK_2:
+          chip.keypad[0x2] = pressed;
+          break;
+        case SDLK_3:
+          chip.keypad[0x3] = pressed;
+          break;
+        case SDLK_4:
+          chip.keypad[0xC] = pressed;
+          break;
 
-      case SDLK_a:
-        chip.keypad[0x7] = pressed;
-        break;
-      case SDLK_s:
-        chip.keypad[0x8] = pressed;
-        break;
-      case SDLK_d:
-        chip.keypad[0x9] = pressed;
-        break;
-      case SDLK_f:
-        chip.keypad[0xE] = pressed;
-        break;
+        case SDLK_q:
+          chip.keypad[0x4] = pressed;
+          break;
+        case SDLK_w:
+          chip.keypad[0x5] = pressed;
+          break;
+        case SDLK_e:
+          chip.keypad[0x6] = pressed;
+          break;
+        case SDLK_r:
+          chip.keypad[0xD] = pressed;
+          break;
 
-      case SDLK_z:
-        chip.keypad[0xA] = pressed;
-        break;
-      case SDLK_x:
-        chip.keypad[0x0] = pressed;
-        break;
-      case SDLK_c:
-        chip.keypad[0xB] = pressed;
-        break;
-      case SDLK_v:
-        chip.keypad[0xF] = pressed;
-        break;
+        case SDLK_a:
+          chip.keypad[0x7] = pressed;
+          break;
+        case SDLK_s:
+          chip.keypad[0x8] = pressed;
+          break;
+        case SDLK_d:
+          chip.keypad[0x9] = pressed;
+          break;
+        case SDLK_f:
+          chip.keypad[0xE] = pressed;
+          break;
+
+        case SDLK_z:
+          chip.keypad[0xA] = pressed;
+          break;
+        case SDLK_x:
+          chip.keypad[0x0] = pressed;
+          break;
+        case SDLK_c:
+          chip.keypad[0xB] = pressed;
+          break;
+        case SDLK_v:
+          chip.keypad[0xF] = pressed;
+          break;
+        }
       }
     }
+
+    //  Run CPU (many instructions per frame)
     for (int i = 0; i < 10; i++) {
       uint16_t opcode = fetch(&chip);
       emulate(&chip, opcode);
     }
 
-    render_display(&chip);
+    // 3. Update timers at 60Hz
+    static uint32_t last_timer = 0;
+    uint32_t now = SDL_GetTicks();
+    if (now - last_timer >= 1000 / 60) {
+      if (chip.delay_timer > 0)
+        chip.delay_timer--;
+      if (chip.sound_timer > 0)
+        chip.sound_timer--;
+      last_timer = now;
+    }
 
+    //  Render
+    render_display(&chip);
     SDL_RenderPresent(renderer);
-    SDL_Delay(1000 / FREQUENCY); // frequency set to 60Hz
+
+    //  Control FPS
+    SDL_Delay(1000 / 60);
   }
+
   cleanup();
   return EXIT_SUCCESS;
 }
 
+// boilerplate code for setting SDL window
 bool init_sdl(void) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("could not initialize SDL! %s\n", SDL_GetError());
@@ -434,7 +453,7 @@ void emulate(Chip8 *chip, uint16_t opcode) {
     draw_sprite(chip, x, y, n);
     break;
   }
-  printf("Key %X pressed\n", chip->V[x]);
+  // printf("Key %X pressed\n", chip->V[x]);
 }
 
 void draw_sprite(Chip8 *chip, uint8_t x_reg, uint8_t y_reg, uint8_t n) {

@@ -3,7 +3,7 @@ CFLAGS = -Wall -Wextra -std=c11
 LDFLAGS = -lSDL2
 
 SRC = main.c
-OUT = main
+OUT = silicon8
 
 all:
 	$(CC) $(SRC) $(CFLAGS) $(LDFLAGS) -o $(OUT)
