@@ -1,8 +1,12 @@
 # silicon8 🖥️
 
+<<<<<<< HEAD
 > A cycle-accurate CHIP-8 emulator written in C using SDL2 — built from the silicon up.
 
 ---
+=======
+A CHIP-8 emulator written in C with SDL2.
+>>>>>>> b694f0f (readme update)
 
 ## Table of Contents
 
@@ -298,6 +302,8 @@ brew install sdl2
 ```
 
 **Windows (MSYS2/MinGW):**
+
+**Arch:**
 ```bash
 pacman -S mingw-w64-x86_64-SDL2
 ```
