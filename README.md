@@ -1,12 +1,6 @@
 # silicon8 🖥️
 
-<<<<<<< HEAD
-> A cycle-accurate CHIP-8 emulator written in C using SDL2 — built from the silicon up.
-
----
-=======
-A CHIP-8 emulator written in C with SDL2.
->>>>>>> b694f0f (readme update)
+> A CHIP-8 emulator written in C with SDL2.
 
 ## Table of Contents
 
@@ -450,18 +444,15 @@ Being a single-file project makes it easy to read from top to bottom. Here is th
 
 If you want to understand CHIP-8 emulation more deeply or extend this project, these resources are invaluable:
 
-- **Cowgod's CHIP-8 Technical Reference** — The canonical opcode reference, widely cited in every CHIP-8 implementation.  
+- **Cowgod's CHIP-8 Technical Reference** - The canonical opcode reference, widely cited in every CHIP-8 implementation.  
   `http://devernay.free.fr/hacks/chip8/C8TECH10.HTM`
 
-- **Tobias V. Langhoff's "Guide to Making a CHIP-8 Emulator"** — A modern, detailed walkthrough covering implementation pitfalls and quirks.  
+- **Tobias V. Langhoff's "Guide to Making a CHIP-8 Emulator"** - A modern, detailed walkthrough covering implementation pitfalls and quirks.  
   `https://tobiasvl.github.io/blog/write-a-chip-8-emulator/`
 
-- **SDL2 Documentation** — Official API reference for every SDL2 function used in this project.  
+- **SDL2 Documentation** - Official API reference for every SDL2 function used in this project.  
   `https://wiki.libsdl.org/SDL2/FrontPage`
 
-- **CHIP-8 Test ROMs** — A collection of ROMs specifically designed to verify correct opcode behaviour.  
+- **CHIP-8 Test ROMs** - A collection of ROMs specifically designed to verify correct opcode behaviour.  
   `https://github.com/Timendus/chip8-test-suite`
 
----
-
-*silicon8 — built from the silicon up.*
